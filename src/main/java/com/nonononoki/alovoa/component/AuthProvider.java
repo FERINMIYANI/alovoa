@@ -43,55 +43,66 @@ public class AuthProvider implements AuthenticationProvider {
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-
-		AuthToken a = (AuthToken) authentication;
-		String email = Tools.cleanEmail(a.getUsername());
-		String password = a.getPassword();
-		long captchaId = a.getCaptchaId();
-		String captchaText = a.getCaptchaText();
-
-		Captcha c = captchaRepo.findById(captchaId).orElse(null);
-		if (c == null) {
-			throw new BadCredentialsException("");
-		}
-
-		captchaRepo.delete(c);
-
-		if (!c.getText().equalsIgnoreCase(captchaText)) {
-			throw new BadCredentialsException("");
-		}
-
-		User user = userRepo.findByEmail(email);
-
-		if (user == null) {
-			throw new BadCredentialsException("");
-		}
-		if (user.isDisabled()) {
-			throw new DisabledException("");
-		}
-
-		if (password.isEmpty()) {
-			throw new BadCredentialsException("");
-		}
-
-		if (!passwordEncoder.matches(password, user.getPassword())) {
-			throw new BadCredentialsException("");
-		}
-		if (!user.isConfirmed() && !user.isAdmin()) {
-			throw new InsufficientAuthenticationException("");
-		}
-		
-		List<GrantedAuthority> authorities = new ArrayList<>();
-		String role;
-		if (user.isAdmin()) {
-			role = SecurityConfig.getRoleAdmin();
-		} else {
-			role = SecurityConfig.getRoleUser();
-		}
-		authorities.add(new SimpleGrantedAuthority(role));
-
+		AuthToken authToken = (AuthToken) authentication;
+		String email = Tools.cleanEmail(authToken.getUsername());
+		String password = authToken.getPassword();
+		long captchaId = authToken.getCaptchaId();
+		String captchaText = authToken.getCaptchaText();
+	
+		validateCaptcha(captchaId, captchaText);
+		User user = validateUser(email, password);
+	
+		List<GrantedAuthority> authorities = getAuthorities(user);
+	
 		return new UsernamePasswordAuthenticationToken(email, password, authorities);
 	}
+	
+	private void validateCaptcha(long captchaId, String captchaText) {
+		Captcha captcha = captchaRepo.findById(captchaId).orElse(null);
+		if (captcha == null) {
+			throw new BadCredentialsException("Invalid captcha.");
+		}
+	
+		captchaRepo.delete(captcha);
+	
+		if (!captcha.getText().equalsIgnoreCase(captchaText)) {
+			throw new BadCredentialsException("Captcha text does not match.");
+		}
+	}
+	
+	private User validateUser(String email, String password) {
+		User user = userRepo.findByEmail(email);
+	
+		if (user == null) {
+			throw new BadCredentialsException("User not found.");
+		}
+	
+		if (user.isDisabled()) {
+			throw new DisabledException("User is disabled.");
+		}
+	
+		if (password.isEmpty()) {
+			throw new BadCredentialsException("Password is empty.");
+		}
+	
+		if (!passwordEncoder.matches(password, user.getPassword())) {
+			throw new BadCredentialsException("Invalid password.");
+		}
+	
+		if (!user.isConfirmed() && !user.isAdmin()) {
+			throw new InsufficientAuthenticationException("User is not confirmed.");
+		}
+	
+		return user;
+	}
+	
+	private List<GrantedAuthority> getAuthorities(User user) {
+		List<GrantedAuthority> authorities = new ArrayList<>();
+		String role = user.isAdmin() ? SecurityConfig.getRoleAdmin() : SecurityConfig.getRoleUser();
+		authorities.add(new SimpleGrantedAuthority(role));
+		return authorities;
+	}
+	
 
 	@Override
 	public boolean supports(Class<?> authentication) {
