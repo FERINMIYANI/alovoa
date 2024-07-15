@@ -54,14 +54,15 @@ public class MediaService {
         }
     }
 
-    public ResponseEntity<byte[]> getVerifPic(UUID uuid) {
-        VerificationPicture verificationPic = verificationPictureRepo.findByUuid(uuid);
-        if (verificationPic != null) {
-            return createImageResponse(verificationPic.getBin(), verificationPic.getBinMime());
+    public ResponseEntity<byte[]> getVerificationPicture(UUID uuid) {
+        UserVerificationPicture verificationPicture = userVerificationPictureRepository.findByUuid(uuid);
+        if (verificationPicture != null) {
+            return getImageDataBase(verificationPicture.getBin(), verificationPicture.getBinMime());
         }
-        User user = userRepo.findByUuid(uuid);
-        return createImageResponse(user.getVerificationPic().getBin(), user.getVerificationPic().getBinMime());
-    }    
+        User user = userRepository.findByUuid(uuid);
+        return getImageDataBase(user.getVerificationPicture().getBin(),
+                user.getVerificationPicture().getBinMime());
+    }
 
     public ResponseEntity<byte[]> getAudio(UUID uuid) {
         UserAudio userAudio = userAudioRepository.findByUuid(uuid);
