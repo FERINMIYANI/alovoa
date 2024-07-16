@@ -255,6 +255,15 @@ public class Tools {
     public static String getAuthParams(SecurityConfig securityConfig, String httpSessionId, String username,
                                        String firstName, int page, String password) {
         String cookieData = securityConfig.getOAuthRememberMeServices().getRememberMeCookieData(username, password);
+        return buildAuthParams(cookieData, httpSessionId, firstName, page);
+    }
+
+    public static String getAuthParams(SecurityConfig securityConfig, String httpSessionId, String username, String firstName, int page) {
+        String cookieData = securityConfig.getOAuthRememberMeServices().getRememberMeCookieData(username, null);
+        return buildAuthParams(cookieData, httpSessionId, firstName, page);
+    }
+
+    private static String buildAuthParams(String cookieData, String httpSessionId, String firstName, int page) {
         StringBuilder builder = new StringBuilder();
         builder.append("?remember-me=").append(cookieData).append("&jsessionid=").append(httpSessionId).append("&page=")
                 .append(page);
@@ -288,11 +297,6 @@ public class Tools {
             userService.updateUUID(user, uuid);
         }
         return uuid;
-    }
-
-    public static String getAuthParams(SecurityConfig securityConfig, String httpSessionId, String username,
-                                       String firstName, int page) {
-        return getAuthParams(securityConfig, httpSessionId, username, firstName, page, null);
     }
 
     public static String buildMimeTypeString(MimeType mimeType) {
